@@ -2,6 +2,42 @@
 
 using namespace std;
 
+class DSU {
+    vector<pair<int, int>> dsu;
+
+public:
+
+    DSU(int n) {
+        dsu.resize(n);
+
+        for(int i = 1; i <= n; i++)
+            dsu[i] = { i, 1 };
+    }
+
+    int find(int a) {
+        while(dsu[a].first != a) {
+            dsu[a].first = dsu[dsu[a].first].first;
+            a = dsu[a].first;
+        }
+
+        return a;
+    }
+
+    void _union(int a, int b) {
+        int rtA = find(a),
+            rtB = find(b);
+
+        if(rtA == rtB)
+            return;
+
+        if(dsu[rtA].second > dsu[rtB].second)
+            swap(rtA, rtB);
+
+        dsu[rtA].first = dsu[rtB].first;
+        dsu[rtB].second += dsu[rtA].second;
+    }
+};
+
 class Graph {
     //  The adjacency list
     vector<vector<int>> adjList;
@@ -637,7 +673,7 @@ public:
      */
     Graph MSTPrims() {
         if(!isWeighted)
-            return *(new Graph(0));
+            return Graph(0);
 
         Graph g(n, false, true);
 
@@ -689,6 +725,47 @@ public:
 
             g.addEdge(from, to, weight);
             edgesInserted++;
+        }
+
+        return g;
+    }
+
+    /*
+     * Get the minimum spanning tree for the current graph
+     * Kruskal's algorithm
+     *
+     * @return a Graph object, which is actually a tree - the MST
+     */
+    Graph MSTKruskals() {
+        if(!isWeighted)
+            return Graph(0);
+
+        Graph g(n, false, true);
+        DSU dsu(n);
+
+        vector<pair<int, pair<int, int>>> adjW;
+
+        for(int i = 1; i <= n; i++)
+            for(auto edge : adjListWeighted[i])
+                adjW.push_back({ edge.second, { i, edge.first } });
+
+        sort(adjW.begin(), adjW.end());
+
+        int edgesInserted = 0;
+
+        for(auto edge : adjW) {
+            if(edgesInserted == n - 1)
+                break;
+
+            int from = edge.second.first,
+                to = edge.second.second,
+                weight = edge.first;
+
+            if(dsu.find(from) != dsu.find(to)) {
+                g.addEdge(from, to, weight);
+                dsu._union(from, to);
+                edgesInserted++;
+            }
         }
 
         return g;
