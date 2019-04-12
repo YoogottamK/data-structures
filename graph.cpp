@@ -8,19 +8,18 @@ class DSU {
 public:
 
     DSU(int n) {
-        dsu.resize(n);
+        dsu.resize(n + 1);
 
         for(int i = 1; i <= n; i++)
             dsu[i] = { i, 1 };
     }
 
     int find(int a) {
-        while(dsu[a].first != a) {
-            dsu[a].first = dsu[dsu[a].first].first;
-            a = dsu[a].first;
-        }
+        if(a == dsu[a].first)
+            return a;
 
-        return a;
+        dsu[a].first = find(dsu[a].first);
+        return dsu[a].first;
     }
 
     void _union(int a, int b) {
@@ -591,38 +590,36 @@ public:
      * @return      a vector containing shortest paths wrt given source.
      */
     vector<int> dijkstra(int s) {
-        const int INF = 1e9;
-        vector<int> sp(n + 1, INF);
+        priority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> pq;
+        vector<int> sp(n + 1, 1e9);
         sp[s] = 0;
+        pq.push({ 0, s });
 
-        set<int> completed;
-        set<pair<int, int>> processing;
+        while(!pq.empty()) {
+            auto vertex = pq.top();
+            pq.pop();
 
-        for(int i = 1; i <= n; i++)
-            processing.insert({ sp[i], i });
+            int dist = vertex.first,
+                v = vertex.second;
 
-        while(!processing.empty()) {
-            auto smallest = processing.begin();
+            if(dist <= sp[v]) {
+                sp[v] = dist;
 
-            int v = (*smallest).second;
-            processing.erase(processing.begin());
+                for(auto edge : adjListWeighted[v]) {
+                    int u = edge.first,
+                        w = edge.second;
 
-            completed.insert(v);
-
-            for(auto i : adjListWeighted[v]) {
-                int u = i.first, w = i.second;
-
-                if(sp[v] + w < sp[u]) {
-                    auto update = processing.find({ sp[u], u });
-                    processing.erase(update);
-                    processing.insert({ sp[v] + w, u });
-                    sp[u] = sp[v] + w;
+                    if(sp[v] + w < sp[u]) {
+                        sp[u] = sp[v] + w;
+                        pq.push({ sp[u], u });
+                    }
                 }
             }
         }
 
         return sp;
     }
+
 
     /*
      * Get all the cut vertices [articulation points] in the graph
@@ -734,9 +731,10 @@ public:
      * Get the minimum spanning tree for the current graph
      * Kruskal's algorithm
      *
+     * @param w: weight of the final tree
      * @return a Graph object, which is actually a tree - the MST
      */
-    Graph MSTKruskals() {
+    Graph MSTKruskals(int & w) {
         if(!isWeighted)
             return Graph(0);
 
@@ -765,6 +763,7 @@ public:
                 g.addEdge(from, to, weight);
                 dsu._union(from, to);
                 edgesInserted++;
+                w += weight;
             }
         }
 
@@ -819,26 +818,28 @@ public:
 
 int main() {
 
-    Graph g(6, false, true);
+    int n, e;
+    cin >> n >> e;
 
-    g.addEdge(1, 2, 3);
-    g.addEdge(2, 3, 5);
-    g.addEdge(3, 4, 4);
-    g.addEdge(4, 5, 2);
-    g.addEdge(5, 1, 4);
+    Graph g(n, 0, 1);
+    for(int i = 0 ;i < e; i++) {
+        int f, t, w;
+        cin >> f >> t >> w;
 
-    g.addEdge(1, 6, 7);
-    g.addEdge(2, 6, 8);
-    g.addEdge(3, 6, 6);
-    g.addEdge(4, 6, 8);
-    g.addEdge(5, 6, 5);
+        g.addEdge(f, t, w);
+    }
 
-    auto mst = g.MSTPrims();
+    auto adj = g.getEdgesWeighted();
+
+    int w = 0;
+    auto mst = g.MSTKruskals(w);
     auto edges = mst.getEdges();
 
     for(int i = 1; i <= 6; i++)
         for(auto edge : edges[i])
             cout << "Edge from " << i << " to " << edge << endl;
+
+    cout << "weight: " << w << endl;
 
     return 0;
 }
