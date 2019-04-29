@@ -495,7 +495,7 @@ public:
      * Detects if there is a cycle in the graph
      *
      * @return true if cycle found else false
-     * TODO: Improve this
+     * TODO: Improve this [use dsu?]
      */
     bool hasCycle() {
         bool cycle = false;
@@ -666,9 +666,11 @@ public:
      * Get the minimum spanning tree for the current graph
      * Prim's algorithm
      *
+     * @param w: weight of the final tree
+     *
      * @return a Graph object, which is actually a tree - the MST
      */
-    Graph MSTPrims() {
+    Graph MSTPrims(int & w) {
         if(!isWeighted)
             return Graph(0);
 
@@ -721,6 +723,7 @@ public:
             processing.erase(least);
 
             g.addEdge(from, to, weight);
+            w += weight;
             edgesInserted++;
         }
 
@@ -771,6 +774,99 @@ public:
     }
 
     /*
+     * Computes all pairs shortest path
+     * Uses Floyd-Warshall algorithm
+     *
+     * @param negativeCycle: boolean indicating whether a negative cycle was
+     *                      found or not
+     *
+     * @return a 2D vector where sp[i][j] represents the length of the shortest
+     *          path from i to j
+     */
+    vector<vector<int>> floydWarshall(bool & negativeCycle) {
+        vector<vector<int>> sp(n + 1, vector<int>(n + 1, 1e9));
+        negativeCycle = 0;
+
+        for(int i = 1; i <= n; i++) {
+            sp[i][i] = 0;
+
+            for(auto edge : adjListWeighted[i]) {
+                int f = i,
+                    t = edge.first,
+                    w = edge.second;
+
+                sp[f][t] = w;
+            }
+        }
+
+        for(int m = 1; m <= n; m++)
+            for(int i = 1; i <= n; i++)
+                for(int j = 1; j <= n; j++)
+                    if(sp[i][j] > sp[i][m] + sp[m][j])
+                        sp[i][j] = sp[i][m] + sp[m][j];
+
+        for(int i = 1; i <= n; i++)
+            if(sp[i][i] < 0) {
+                negativeCycle = 1;
+                break;
+            }
+
+        return sp;
+    }
+
+    /*
+     * Computes all pairs shortest path
+     * Uses Johnson's algorithm
+     *
+     * @param negativeCycle: boolean indicating whether a negative cycle was
+     *                      found or not
+     *
+     * @return a 2D vector where sp[i][j] represents the length of the shortest
+     *          path from i to j
+     */
+    vector<vector<int>> johnson(bool & negativeCycle) {
+        vector<vector<int>> sp(n + 1);
+        negativeCycle = 0;
+
+        Graph cp(n + 1, isDirected, isWeighted);
+
+        for(int i = 1; i <= n; i++) {
+            cp.addEdge(n + 1, i, 0);
+
+            for(auto edge : adjListWeighted[i])
+                cp.addEdge(i, edge.first, edge.second);
+        }
+
+        auto w = cp.bellmanFord(n + 1);
+
+        if(!w.size()) {
+            negativeCycle = 1;
+            return sp;
+        }
+
+        Graph reWeighted(n, isDirected, isWeighted);
+
+        for(int i = 1; i <= n; i++)
+            for(auto edge : adjListWeighted[i]) {
+                int f = i,
+                    t = edge.first,
+                    wt = edge.second + w[f] - w[t];
+
+                reWeighted.addEdge(f, t, wt);
+            }
+
+        for(int i = 1; i <= n; i++) {
+            sp[i] = reWeighted.dijkstra(i);
+
+            for(int j = 1; j <= n; j++)
+                if(sp[i][j] != 1e9)
+                    sp[i][j] -= (w[i] - w[j]);
+        }
+
+        return sp;
+    }
+
+    /*
      * Adds an edge in the graph [not weighted]
      * Checks if the graph is directed or not
      *
@@ -814,33 +910,12 @@ public:
     vector<vector<pair<int, int>>> getEdgesWeighted() {
         return adjListWeighted;
     }
-};
 
-int main() {
-
-    int n, e;
-    cin >> n >> e;
-
-    Graph g(n, 0, 1);
-    for(int i = 0 ;i < e; i++) {
-        int f, t, w;
-        cin >> f >> t >> w;
-
-        g.addEdge(f, t, w);
+    /*
+     * Returns the number of vertices in the graph
+     */
+    int size() {
+        return n;
     }
-
-    auto adj = g.getEdgesWeighted();
-
-    int w = 0;
-    auto mst = g.MSTKruskals(w);
-    auto edges = mst.getEdges();
-
-    for(int i = 1; i <= 6; i++)
-        for(auto edge : edges[i])
-            cout << "Edge from " << i << " to " << edge << endl;
-
-    cout << "weight: " << w << endl;
-
-    return 0;
-}
+};
 
