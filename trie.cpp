@@ -1,18 +1,5 @@
 #include<bits/stdc++.h>
 
-#define V vector<int>
-#define VV(v, n, m) vector<V> v(n, V(m));
-#define _4(i, n) for(int i = 0; i < n; i++)
-#define g_arr(arr, n) _4(i, n) cin >> arr[i];
-#define p_vec(vec) _4(i, (int)vec.size()) cout << vec[i] << ' '; cout << endl;
-#define ii pair<int, int>
-#define ff first
-#define ss second
-#define pb push_back
-#define pf push_front
-
-typedef long long ll;
-
 using namespace std;
 
 class Trie {
